@@ -19,7 +19,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text("Acesso Restrito")),
       body: Center(
-        child: SingleChildScrollView( 
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(32.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -31,6 +31,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
               
               TextField(
                 controller: _emailController,
+                textDirection: TextDirection.ltr,
                 keyboardType: TextInputType.emailAddress,
                 decoration: const InputDecoration(
                   labelText: "Email",
@@ -42,6 +43,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
               TextField(
                 controller: _passController,
                 obscureText: true,
+                textDirection: TextDirection.ltr,
                 decoration: InputDecoration(
                   labelText: "Senha",
                   errorText: error.isEmpty ? null : error,
@@ -89,7 +91,7 @@ class AdminDashboard extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.grey[100],
       appBar: AppBar(
-        title: const Text("Respostas"),
+        title: const Text("Respostas Recebidas"),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
@@ -100,35 +102,32 @@ class AdminDashboard extends StatelessWidget {
           )
         ],
       ),
-      // FIX: Added SafeArea for mobile compliance (notches/dynamic islands)
-      body: SafeArea(
-        child: StreamBuilder<QuerySnapshot>(
-          stream: getSubmissionsCollection().orderBy('timestamp', descending: true).snapshots(),
-          builder: (context, snapshot) {
-            if (snapshot.hasError) {
-               return Center(child: Text("Erro: ${snapshot.error}"));
-            }
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
+      body: StreamBuilder<QuerySnapshot>(
+        stream: getSubmissionsCollection().orderBy('timestamp', descending: true).snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+             return Center(child: Text("Erro: ${snapshot.error}"));
+          }
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-            final docs = snapshot.data?.docs ?? [];
-            
-            if (docs.isEmpty) {
-              return const Center(child: Text("Nenhuma resposta ainda."));
-            }
+          final docs = snapshot.data?.docs ?? [];
+          
+          if (docs.isEmpty) {
+            return const Center(child: Text("Nenhuma resposta ainda.", style: TextStyle(color: Colors.black54)));
+          }
 
-            return ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: docs.length,
-              itemBuilder: (context, index) {
-                final data = docs[index].data() as Map<String, dynamic>;
-                final item = FeedbackForm.fromMap(docs[index].id, data);
-                return DataCard(data: item);
-              },
-            );
-          },
-        ),
+          return ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: docs.length,
+            itemBuilder: (context, index) {
+              final data = docs[index].data() as Map<String, dynamic>;
+              final item = FeedbackForm.fromMap(docs[index].id, data);
+              return DataCard(data: item);
+            },
+          );
+        },
       ),
     );
   }
@@ -140,34 +139,80 @@ class DataCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Determine what to show for "Future Representative"
+    String futuroRepDisplay;
+    if (data.futuroRep == 'Não') {
+      futuroRepDisplay = data.novoRepSelecionado.isNotEmpty 
+          ? "Trocar por: ${data.novoRepSelecionado}" 
+          : "Trocar (Não selecionou novo)";
+    } else {
+      futuroRepDisplay = "Manter o mesmo";
+    }
+
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: ExpansionTile(
         title: Text(
-          "ID: ${data.cpfCnpj}",
-          style: const TextStyle(fontWeight: FontWeight.bold),
+          "Empresa: ${data.cpfCnpj}",
+          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87),
         ),
         subtitle: Text(
-          "Recomenda: ${data.recomenda}",
+          "Recomendaria Evento: ${data.recomenda}",
           style: TextStyle(
-            color: data.recomenda == 'Sim' ? Colors.green : Colors.red,
+            color: data.recomenda == 'Sim' ? Colors.green[700] : Colors.red[700],
+            fontWeight: FontWeight.w500
           ),
         ),
         childrenPadding: const EdgeInsets.all(16),
         children: [
-          _row("Tel Rep", data.telefoneRep),
-          _row("Opinião Expo", data.opiniaoExpo),
-          _row("Expectativas", data.expectativasExpo),
+          _sectionHeader("Contato"),
+          _row("Telefone Rep. Atual", data.telefoneRep),
+          
           const Divider(),
-          _row("Suporte Rep", data.suporteRep),
-          _row("Futuro Rep", data.futuroRep),
-          if (data.obsEquipe.isNotEmpty) _row("Obs Equipe", data.obsEquipe),
+          _sectionHeader("Sobre a Expo"),
+          _row("Opinião Geral", data.opiniaoExpo),
+          _row("Expectativas Atendidas?", data.expectativasExpo),
+          
           const Divider(),
-          _row("Montagem OK?", data.montagemSatisfatoria),
-          if (data.obsMontagem.isNotEmpty) _row("Obs Montagem", data.obsMontagem),
+          _sectionHeader("Relacionamento com Representante"),
+          _row("Avaliação do Suporte", data.suporteRep),
+          _row("Próximo Representante", futuroRepDisplay),
+          if (data.motivoNaoFuturoRep.isNotEmpty) 
+            _row("Motivo da Troca", data.motivoNaoFuturoRep),
+          if (data.obsEquipe.isNotEmpty) 
+            _row("Observações da Equipe", data.obsEquipe),
+          
+          const Divider(),
+          _sectionHeader("Estrutura"),
+          _row("Montagem Satisfatória?", data.montagemSatisfatoria),
+          if (data.obsMontagem.isNotEmpty) 
+            _row("Obs. da Montagem", data.obsMontagem),
+
+          const Divider(),
+          _sectionHeader("Festa & Encerramento"),
+          _row("Foi à Festa?", data.foiFesta.isEmpty ? "Não respondeu" : data.foiFesta),
+          if (data.considFesta.isNotEmpty) 
+            _row("Considerações Festa", data.considFesta),
+          if (data.msgCeo.isNotEmpty) 
+            _row("Mensagem ao CEO", data.msgCeo),
         ],
+      ),
+    );
+  }
+
+  Widget _sectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 8, bottom: 8),
+      child: Text(
+        title.toUpperCase(),
+        style: const TextStyle(
+          fontWeight: FontWeight.bold, 
+          fontSize: 12, 
+          color: Colors.indigo,
+          letterSpacing: 1.0
+        ),
       ),
     );
   }
@@ -178,8 +223,19 @@ class DataCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text("$label: ", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey)),
-          Expanded(child: Text(value, style: const TextStyle(fontSize: 14))),
+          SizedBox(
+            width: 140, // Fixed width for labels alignment
+            child: Text(
+              "$label:", 
+              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.grey[700])
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value.isEmpty ? "-" : value, 
+              style: const TextStyle(fontSize: 14, color: Colors.black87)
+            ),
+          ),
         ],
       ),
     );

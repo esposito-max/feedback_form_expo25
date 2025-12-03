@@ -5,9 +5,6 @@ import '../models/feedback_form.dart';
 
 // Firestore Path Helper
 CollectionReference<Map<String, dynamic>> getSubmissionsCollection() {
-  // UPDATED: We now use a simple root-level collection named 'submissions'.
-  // Firestore will AUTOMATICALLY create this collection the moment 
-  // you submit the first form. You do not need to create it manually.
   return FirebaseFirestore.instance.collection('submissions');
 }
 
@@ -37,38 +34,35 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Submit to Firestore
+  // UPDATED: Submit only saves data, does NOT navigate away
   Future<void> submitForm() async {
     final collection = getSubmissionsCollection();
-    
     _currentDraft.timestamp = DateTime.now();
     
     try {
-      // This is the magic line that creates the collection if it doesn't exist.
       await collection.add(_currentDraft.toMap());
-      
-      // Reset Draft
-      _currentDraft = FeedbackForm(id: '', timestamp: DateTime.now());
-      
-      // Reset View
-      setSection(0); 
+      // Removed setSection(0) and reset logic from here
       notifyListeners();
     } catch (e) {
       debugPrint("Error submitting form: $e");
-      // In a real app, you might want to show a dialog here, 
-      // but rethrowing allows the UI to handle the snackbar.
       rethrow;
     }
   }
 
-  // Login Logic (Authentication)
+  // NEW: Resets the form state and goes back to Home
+  void resetForm() {
+    _currentDraft = FeedbackForm(id: '', timestamp: DateTime.now());
+    setSection(0);
+    notifyListeners();
+  }
+
+  // Login Logic
   Future<bool> loginAdmin(String email, String password) async {
     try {
       await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: email, 
         password: password
       );
-      
       _isAdminLoggedIn = true;
       notifyListeners();
       return true;
@@ -81,16 +75,12 @@ class AppState extends ChangeNotifier {
   // Logout Logic
   Future<void> logoutAdmin() async {
     await FirebaseAuth.instance.signOut(); 
-    
-    // Sign back in anonymously so the app remains usable for public submissions
     await FirebaseAuth.instance.signInAnonymously(); 
-    
     _isAdminLoggedIn = false;
     notifyListeners();
   }
 }
 
-// InheritedNotifier to access state in the tree
 class AppStateProvider extends InheritedNotifier<AppState> {
   const AppStateProvider({
     super.key,

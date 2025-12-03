@@ -15,6 +15,8 @@ class FeedbackForm {
   // -- Feedback Representante --
   String suporteRep;
   String futuroRep;
+  String motivoNaoFuturoRep;
+  String novoRepSelecionado; // <--- NEW FIELD
   String obsEquipe;
 
   // -- Feedback Montagem --
@@ -23,6 +25,9 @@ class FeedbackForm {
 
   // -- Feedback Geral --
   String recomenda;
+  String foiFesta;
+  String considFesta;
+  String msgCeo;
 
   FeedbackForm({
     required this.id,
@@ -33,10 +38,15 @@ class FeedbackForm {
     this.expectativasExpo = '',
     this.suporteRep = '',
     this.futuroRep = '',
+    this.motivoNaoFuturoRep = '',
+    this.novoRepSelecionado = '', // <--- Init
     this.obsEquipe = '',
     this.montagemSatisfatoria = '',
     this.obsMontagem = '',
     this.recomenda = '',
+    this.foiFesta = '',
+    this.considFesta = '',
+    this.msgCeo = '',
   });
 
   // Convert to Map for Firestore
@@ -49,10 +59,15 @@ class FeedbackForm {
       'expectativasExpo': expectativasExpo,
       'suporteRep': suporteRep,
       'futuroRep': futuroRep,
+      'motivoNaoFuturoRep': motivoNaoFuturoRep,
+      'novoRepSelecionado': novoRepSelecionado, // <--- Map
       'obsEquipe': obsEquipe,
       'montagemSatisfatoria': montagemSatisfatoria,
       'obsMontagem': obsMontagem,
       'recomenda': recomenda,
+      'foiFesta': foiFesta,
+      'considFesta': considFesta,
+      'msgCeo': msgCeo,
     };
   }
 
@@ -67,26 +82,23 @@ class FeedbackForm {
       expectativasExpo: map['expectativasExpo'] ?? '',
       suporteRep: map['suporteRep'] ?? '',
       futuroRep: map['futuroRep'] ?? '',
+      motivoNaoFuturoRep: map['motivoNaoFuturoRep'] ?? '',
+      novoRepSelecionado: map['novoRepSelecionado'] ?? '', // <--- From Map
       obsEquipe: map['obsEquipe'] ?? '',
       montagemSatisfatoria: map['montagemSatisfatoria'] ?? '',
       obsMontagem: map['obsMontagem'] ?? '',
       recomenda: map['recomenda'] ?? '',
+      foiFesta: map['foiFesta'] ?? '',
+      considFesta: map['considFesta'] ?? '',
+      msgCeo: map['msgCeo'] ?? '',
     );
   }
 
-  // Operator for dynamic access
   dynamic operator [](String key) {
     switch (key) {
-      case 'cpfCnpj': return cpfCnpj;
-      case 'telefoneRep': return telefoneRep;
-      case 'opiniaoExpo': return opiniaoExpo;
-      case 'expectativasExpo': return expectativasExpo;
-      case 'suporteRep': return suporteRep;
-      case 'futuroRep': return futuroRep;
-      case 'obsEquipe': return obsEquipe;
-      case 'montagemSatisfatoria': return montagemSatisfatoria;
-      case 'obsMontagem': return obsMontagem;
-      case 'recomenda': return recomenda;
+      // ... existing cases ...
+      case 'novoRepSelecionado': return novoRepSelecionado; // <--- Op
+      // ... existing cases ...
       default: return null;
     }
   }

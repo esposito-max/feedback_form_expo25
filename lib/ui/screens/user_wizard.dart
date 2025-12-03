@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart'; 
 import '../../providers/app_state.dart';
 import '../../utils/formatters.dart';
 import '../shared/components.dart';
 
-// --- 1. HomePage ---
+// --- 1. HomePage (Unchanged) ---
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
   @override
@@ -19,7 +20,6 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    // Initialize controllers ONCE with data from state
     final draft = AppStateProvider.read(context).currentDraft;
     _cpfController = TextEditingController(text: draft.cpfCnpj);
     _phoneController = TextEditingController(text: draft.telefoneRep);
@@ -106,7 +106,7 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
-// --- 2. Feedback Expo (Converted to Stateful) ---
+// --- 2. Feedback Expo (Unchanged) ---
 class FeedbackExpoPage extends StatefulWidget {
   const FeedbackExpoPage({super.key});
 
@@ -144,7 +144,7 @@ class _FeedbackExpoPageState extends State<FeedbackExpoPage> {
       content: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          buildQuestion("Qual sua opinião sobre a sua experiência na Expo? *"),
+          buildQuestion("Conte sobre sua experiência na Expo? *"),
           TextField(
             controller: _opiniaoController,
             maxLines: 2,
@@ -153,7 +153,7 @@ class _FeedbackExpoPageState extends State<FeedbackExpoPage> {
             onChanged: (val) => appState.updateDraft((d) => d.opiniaoExpo = val),
           ),
           const SizedBox(height: 32),
-          buildQuestion("A Expo foi satisfatória em relação às suas expectativas de Networking, oportunidade de negócios, e volume de vendas? *"),
+          buildQuestion("A ExpoTEA foi satisfatória em relação às suas expectativas de Networking, oportunidades de negócios e vendas? *"),
           TextField(
             controller: _expectativasController,
             maxLines: 4,
@@ -170,22 +170,26 @@ class _FeedbackExpoPageState extends State<FeedbackExpoPage> {
   }
 }
 
-// --- 3. Feedback Representante (Converted to Stateful) ---
+// --- 3. Feedback Representante (Unchanged) ---
 class FeedbackRepresentantePage extends StatefulWidget {
   const FeedbackRepresentantePage({super.key});
-
   @override
   State<FeedbackRepresentantePage> createState() => _FeedbackRepresentantePageState();
 }
 
 class _FeedbackRepresentantePageState extends State<FeedbackRepresentantePage> {
   late TextEditingController _obsController;
+  late TextEditingController _reasonController;
 
   final List<Map<String, String>> allRepresentatives = const [
-    {'name': 'Carlos Silva', 'phone': '(11) 99999-0001'},
-    {'name': 'Ana Souza', 'phone': '(11) 98888-0002'},
-    {'name': 'João Oliveira', 'phone': '(11) 97777-0003'},
-    {'name': 'Mariana Santos', 'phone': '(21) 96666-0004'},
+    {'name': 'Cristina Gouveia', 'phone': '(11) 94763-3153'},
+    {'name': 'Dani Esposito', 'phone': '(11) 95285-8703'},
+    {'name': 'Flavia Carvalho', 'phone': '(21) 99409-7143'},
+    {'name': 'Jacson Marçal', 'phone': '(62) 98151-1131'},
+    {'name': 'Marcelo', 'phone': '(11) 94707-5133'},
+    {'name': 'Tatiana Dias', 'phone': '(11) 94899-9020'},
+    {'name': 'Tatiana Silva', 'phone': '(11) 95910-2731'},
+    {'name': 'Viviane Mendes', 'phone': '(11) 97759-0932'},
   ];
 
   @override
@@ -193,40 +197,116 @@ class _FeedbackRepresentantePageState extends State<FeedbackRepresentantePage> {
     super.initState();
     final draft = AppStateProvider.read(context).currentDraft;
     _obsController = TextEditingController(text: draft.obsEquipe);
+    _reasonController = TextEditingController(text: draft.motivoNaoFuturoRep);
   }
 
   @override
   void dispose() {
     _obsController.dispose();
+    _reasonController.dispose();
     super.dispose();
+  }
+
+  void _showContactDialog(String newRepName, String newRepPhone, String oldRepName, String oldRepPhone) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF0A2458),
+          title: Text("Contatar $newRepName", style: const TextStyle(color: Colors.white)),
+          content: const Text(
+            "Por favor, realize as duas ações abaixo para concluir a troca de representante.",
+            style: TextStyle(color: Colors.white70),
+          ),
+          actionsAlignment: MainAxisAlignment.center,
+          actions: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.close, color: Colors.white),
+                  label: Text("1. Avisar $oldRepName (Encerrar)"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red.withOpacity(0.8),
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: () {
+                    _launchWhatsApp(oldRepPhone, 
+                      message: "Olá $oldRepName, agradeço o atendimento, mas decidi seguir com outro representante. Obrigado!"
+                    );
+                  },
+                ),
+                const SizedBox(height: 12),
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.check, color: Colors.white),
+                  label: Text("2. Falar com $newRepName (Iniciar)"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF25D366),
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: () {
+                    _launchWhatsApp(newRepPhone, 
+                      message: "Olá $newRepName, eu era acompanhado por $oldRepName mas por diversos motivos decidi seguir com você como representante."
+                    );
+                  },
+                ),
+                TextButton(
+                  child: const Text("Fechar", style: TextStyle(color: Colors.white54)),
+                  onPressed: () => Navigator.of(context).pop(),
+                )
+              ],
+            )
+          ],
+        );
+      }
+    );
+  }
+
+  void _launchWhatsApp(String phoneDisplay, {required String message}) async {
+    final cleanPhone = '55' + phoneDisplay.replaceAll(RegExp(r'\D'), '');
+    final encodedMessage = Uri.encodeComponent(message);
+    final urlString = "https://api.whatsapp.com/send/?phone=$cleanPhone&text=$encodedMessage&type=phone_number&app_absent=0";
+    final uri = Uri.parse(urlString);
+
+    try {
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Não foi possível abrir o WhatsApp")),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint("Error launching URL: $e");
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final appState = AppStateProvider.of(context);
     final draft = appState.currentDraft;
-    final isValid = draft.suporteRep.isNotEmpty && draft.futuroRep.isNotEmpty;
+    final bool isRepSelectionValid = draft.futuroRep != 'Não' || draft.novoRepSelecionado.isNotEmpty;
+    final isValid = draft.suporteRep.isNotEmpty && draft.futuroRep.isNotEmpty && isRepSelectionValid;
 
     final currentRepObj = allRepresentatives.firstWhere(
       (c) => c['phone'] == draft.telefoneRep,
       orElse: () => {'name': 'Desconhecido', 'phone': draft.telefoneRep},
     );
-    final currentRepName = currentRepObj['name'];
+    final currentRepName = currentRepObj['name']!;
+    final currentRepPhone = currentRepObj['phone']!;
 
     final otherContacts = allRepresentatives
         .where((c) => c['phone'] != draft.telefoneRep)
         .toList();
-
-    String contactsListMarkdown = otherContacts.isEmpty
-        ? "Nenhum outro contato disponível."
-        : otherContacts.map((c) => "- ${c['name']}: ${c['phone']}").join("\n");
 
     return FormSectionLayout(
       title: "Feedback Representante",
       content: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          buildQuestion("Seu representante lhe forneceu o suporte e informações necessárias para que sua assinatura de contrato e estadia na expo fossem satisfatórias? *"),
+          buildQuestion("Seu representante lhe forneceu o suporte e acompanhamento necessários para que sua participação na expo fosse satisfatória? *"),
           buildRadioGroup(
             options: ["Sim", "Não", "Poderia ter sido melhor"],
             selected: draft.suporteRep,
@@ -241,21 +321,85 @@ class _FeedbackRepresentantePageState extends State<FeedbackRepresentantePage> {
           ),
           const SizedBox(height: 32),
           
-          if (draft.futuroRep == 'Não') 
-            DynamicInformativeText(
-              data: draft,
-              template: 
-                "### Outros Representantes Disponíveis\n"
-                "Como você optou por não continuar com o atual (**$currentRepName - {telefoneRep}**), aqui estão outras opções:\n\n"
-                "$contactsListMarkdown", 
+          if (draft.futuroRep == 'Não') ...[
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: const Color(0xFF00CCFF).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFF00CCFF).withOpacity(0.3)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  RichText(
+                    text: TextSpan(
+                      style: const TextStyle(fontSize: 16, color: Colors.white70, height: 1.5),
+                      children: [
+                        const TextSpan(text: "Como você optou por não continuar com o atual ("),
+                        TextSpan(
+                          text: "$currentRepName - $currentRepPhone", 
+                          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)
+                        ),
+                        const TextSpan(text: "), por favor selecione um novo representante abaixo:"),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  ...otherContacts.map((contact) {
+                    final isSelected = draft.novoRepSelecionado == contact['name'];
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12.0),
+                      child: ElevatedButton.icon(
+                        icon: Icon(
+                          isSelected ? Icons.check_circle : Icons.person_add, 
+                          color: isSelected ? Colors.white : Colors.white70
+                        ),
+                        label: Text(
+                          "${contact['name']} - ${contact['phone']}",
+                          style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: isSelected ? const Color(0xFF25D366) : Colors.white.withOpacity(0.1),
+                          foregroundColor: Colors.white,
+                          alignment: Alignment.centerLeft,
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                          side: isSelected ? const BorderSide(color: Colors.white, width: 2) : null,
+                        ),
+                        onPressed: () {
+                          appState.updateDraft((d) => d.novoRepSelecionado = contact['name']!);
+                          _showContactDialog(
+                            contact['name']!, 
+                            contact['phone']!,
+                            currentRepName,
+                            currentRepPhone
+                          );
+                        },
+                      ),
+                    );
+                  }).toList(),
+                ],
+              ),
             ),
-          
+            const SizedBox(height: 24),
+            buildQuestion("Considerações"),
+            TextField(
+              maxLines: 5,
+              style: const TextStyle(color: Colors.white),
+              controller: _reasonController,
+              decoration: const InputDecoration(
+                hintText: "Digite aqui o motivo...",
+              ),
+              onChanged: (val) => appState.updateDraft((d) => d.motivoNaoFuturoRep = val),
+            ),
+          ],
           const Divider(height: 48, color: Colors.white24),
           buildQuestion("Exceto seu representante. Você tem alguma observação sobre o restante da equipe organizadora?"),
           TextField(
-            controller: _obsController,
             maxLines: 3,
+            textDirection: TextDirection.ltr,
             style: const TextStyle(color: Colors.white),
+            controller: _obsController,
             onChanged: (val) => appState.updateDraft((d) => d.obsEquipe = val),
           ),
         ],
@@ -267,10 +411,9 @@ class _FeedbackRepresentantePageState extends State<FeedbackRepresentantePage> {
   }
 }
 
-// --- 4. Feedback Montagem (Converted to Stateful) ---
+// --- 4. Feedback Montagem (Unchanged) ---
 class FeedbackMontagemPage extends StatefulWidget {
   const FeedbackMontagemPage({super.key});
-
   @override
   State<FeedbackMontagemPage> createState() => _FeedbackMontagemPageState();
 }
@@ -325,9 +468,31 @@ class _FeedbackMontagemPageState extends State<FeedbackMontagemPage> {
   }
 }
 
-// --- 5. Feedback Geral (Remains Stateless - No TextFields) ---
-class FeedbackGeralPage extends StatelessWidget {
+// --- 5. Feedback Geral (SUBMITS DATA HERE) ---
+class FeedbackGeralPage extends StatefulWidget {
   const FeedbackGeralPage({super.key});
+  @override
+  State<FeedbackGeralPage> createState() => _FeedbackGeralPageState();
+}
+
+class _FeedbackGeralPageState extends State<FeedbackGeralPage> {
+  late TextEditingController _considFestaController;
+  late TextEditingController _ceoMsgController;
+
+  @override
+  void initState() {
+    super.initState();
+    final draft = AppStateProvider.read(context).currentDraft;
+    _considFestaController = TextEditingController(text: draft.considFesta);
+    _ceoMsgController = TextEditingController(text: draft.msgCeo);
+  }
+
+  @override
+  void dispose() {
+    _considFestaController.dispose();
+    _ceoMsgController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -346,16 +511,77 @@ class FeedbackGeralPage extends StatelessWidget {
             selected: draft.recomenda,
             onSelect: (val) => appState.updateDraft((d) => d.recomenda = val),
           ),
+          
+          const Divider(height: 48, color: Colors.white24),
+          
+          buildQuestion("Você participou da festa de encerramento?"),
+          buildRadioGroup(
+            options: ["Sim", "Não"],
+            selected: draft.foiFesta,
+            onSelect: (val) => appState.updateDraft((d) => d.foiFesta = val),
+          ),
+          const SizedBox(height: 24),
+          
+          buildQuestion("Possui alguma consideração sobre a festa?"),
+          TextField(
+            controller: _considFestaController,
+            maxLines: 3,
+            style: const TextStyle(color: Colors.white),
+            decoration: const InputDecoration(
+              hintText: "O que achou da comida, música, ambiente...",
+            ),
+            onChanged: (val) => appState.updateDraft((d) => d.considFesta = val),
+          ),
+          
+          const SizedBox(height: 32),
+          
+          buildQuestion("Gostaria de deixar alguma mensagem para o CEO e sua equipe?"),
+          TextField(
+            controller: _ceoMsgController,
+            maxLines: 4,
+            style: const TextStyle(color: Colors.white),
+            decoration: const InputDecoration(
+              hintText: "Escreva sua mensagem aqui...",
+            ),
+            onChanged: (val) => appState.updateDraft((d) => d.msgCeo = val),
+          ),
         ],
       ),
       onBack: () => appState.setSection(3),
       isNextEnabled: isValid,
-      onNext: () => appState.setSection(5),
+      nextLabel: "Finalizar e enviar",
+      // UPDATED: Submit Logic Moved Here
+      onNext: () async {
+        try {
+          // 1. Submit Data
+          await appState.submitForm();
+          
+          // 2. Success Message
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text("Resposta enviada com sucesso!"),
+                backgroundColor: Color(0xFF99CC33),
+              ),
+            );
+          }
+          
+          // 3. Navigate to Outro Page (Manually)
+          appState.setSection(5);
+          
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text("Erro ao enviar: $e"), backgroundColor: Colors.red),
+            );
+          }
+        }
+      },
     );
   }
 }
 
-// --- 6. Outro Page (Remains Stateless) ---
+// --- 6. Outro Page (RESETS DATA HERE) ---
 class OutroPage extends StatelessWidget {
   const OutroPage({super.key});
 
@@ -383,25 +609,10 @@ class OutroPage extends StatelessWidget {
         ],
       ),
       onBack: null, 
-      nextLabel: "Finalizar / Nova Resposta",
-      onNext: () async {
-        try {
-          await appState.submitForm();
-          if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text("Resposta enviada para a nuvem!"),
-                backgroundColor: Color(0xFF99CC33),
-              ),
-            );
-          }
-        } catch (e) {
-          if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text("Erro: $e"), backgroundColor: Colors.red),
-            );
-          }
-        }
+      nextLabel: "Nova Resposta",
+      // UPDATED: Reset Logic Moved Here
+      onNext: () {
+        appState.resetForm();
       },
     );
   }

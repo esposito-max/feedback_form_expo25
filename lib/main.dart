@@ -60,7 +60,7 @@ class MyApp extends StatelessWidget {
           surface: ExpoColors.surfaceDark,
           background: ExpoColors.azulMarinho,
         ),
-        fontFamily: 'Roboto', 
+        fontFamily: 'Times New Roman', 
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
           fillColor: Colors.black.withOpacity(0.2), 
